@@ -10,6 +10,7 @@
 - pandas
 - pycocotools
 - timm==0.1.22
+- clearml
 
 ### Install dependencies
 `pip install -r requirements.txt`

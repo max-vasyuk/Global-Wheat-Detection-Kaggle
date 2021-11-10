@@ -7,3 +7,4 @@ scikit-learn
 pandas
 pycocotools
 timm==0.1.22
+clearml

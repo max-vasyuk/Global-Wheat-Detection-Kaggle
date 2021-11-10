@@ -1,0 +1,9 @@
+numpy
+pillow
+albumentations
+opencv-python
+matplotlib
+scikit-learn
+pandas
+pycocotools
+timm==0.1.22

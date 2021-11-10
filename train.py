@@ -6,6 +6,9 @@ import time
 import torch
 from torch.utils.data.sampler import SequentialSampler, RandomSampler
 from utils import collate_fn
+from clearml import Task
+from torch.utils.tensorboard import SummaryWriter
+from torchvision.utils import make_grid
 
 
 class AverageMeter(object):
@@ -44,6 +47,13 @@ class Trainer:
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=config.lr)
         self.scheduler = config.SchedulerClass(self.optimizer, **config.scheduler_params)
         self.log(f'Fitter prepared. Device is {self.device}')
+        
+        # init clearml
+        self.writer = SummaryWriter()
+        self.task = Task.init(project_name='wgb', task_name='exp_effdet_v4', auto_connect_frameworks={'pytorch': False})
+       
+        Task.current_task().set_model_config(str(self.model))
+        Task.current_task().connect({})
 
     def fit(self, train_loader, validation_loader):
         for e in range(self.config.n_epochs):
@@ -54,6 +64,7 @@ class Trainer:
 
             t = time.time()
             summary_loss = self.train_one_epoch(train_loader)
+            self.writer.add_scalar(str(k), loss_dict[k], len(train_data) * epoch + iteration)
 
             self.log(
                 f'Train. Epoch: {self.epoch}, summary_loss: {summary_loss.avg:.5f}, time: {(time.time() - t):.5f}')
@@ -124,14 +135,14 @@ class Trainer:
             loss, _, _ = self.model(images, boxes, labels)
 
             loss.backward()
-
+            self.writer.add_scalar('loss', loss.detach().item(), len(train_loader) * self.epoch + step)
             summary_loss.update(loss.detach().item(), batch_size)
 
             self.optimizer.step()
 
             if self.config.step_scheduler:
                 self.scheduler.step()
-
+        
         return summary_loss
 
     def save(self, path):
